@@ -338,7 +338,7 @@ elif st.session_state.step == 1:
         st.session_state.step = 2
         st.rerun()
     if st.button("Start Over", key="so_preview"):
-        for key in list(st.session_state.keys()): del st.session_state.key
+        st.session_state.clear()
         st.rerun()
 
 # --- Step 2: The Full Plan ---
@@ -365,6 +365,6 @@ elif st.session_state.step == 2:
         st.info(f"You're doing great, {name}! Just a quick reminder that you are strong and capable. Keep going! 💪")
 
     if st.button("Start Over"):
-        for key in list(st.session_state.keys()): del st.session_state[key]
+        st.session_state.clear()
         st.rerun()
 
