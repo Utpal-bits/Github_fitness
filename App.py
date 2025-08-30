@@ -104,7 +104,7 @@ def calculate_whtr(waist, h): return round(waist / h, 2) if waist > 0 and h > 0 
 # --- Content Generation Functions ---
 def get_diet_recommendations(category, diet_type, living_situation, name):
     title = f"<h3>🥗 Hey {name}, I hope you're having a great day! Let's talk food.</h3>"
-    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Healthy+Indian+Food"
+    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Healthy+Indian+Thali"
     content = f"<img src='{image_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
     
     base_info = f"""
@@ -266,25 +266,41 @@ def get_20_day_plan(name, category, weight):
     return f"{title}{content}<div class='custom-box'>{plan_details}</div>"
 
 def get_india_snapshot():
-    title = "<h3>🇮🇳 India's Health Snapshot: You're Part of a National Movement!</h3>"
-    content = """
-    <p>Your decision to focus on your health is incredibly important. You're not just improving your own life; you're joining millions of Indians who are actively working towards a healthier future. Here's a look at the bigger picture:</p>
-    """
+    st.markdown("<h3>🇮🇳 India's Health Snapshot: You're Part of a National Movement!</h3>", unsafe_allow_html=True)
     
-    kpi_cols = st.columns(3)
-    with kpi_cols[0]:
-        st.metric(label="Obesity in India (Adults, 2022)", value="70 Million+", delta="A growing concern", delta_color="inverse")
-        st.write("Recent data shows a significant rise, especially among women (44M) compared to men (26M).")
-    with kpi_cols[1]:
-        st.metric(label="Physical Inactivity", value="~54% of Adults", delta="More movement is needed", delta_color="inverse")
-        st.write("Over half of the adult population doesn't meet the recommended physical activity levels.")
-    with kpi_cols[2]:
-        st.metric(label="Common Deficiencies", value="Iron, Vit B12 & D", delta="Nutrient gap is common", delta_color="inverse")
-        st.write("Many Indian diets, while rich in flavour, can lack these crucial micronutrients.")
+    st.markdown("""
+    <div class="custom-box">
+        <p>Your decision to focus on your health is incredibly important. You're joining millions of Indians working towards a healthier future. Here's a look at the bigger picture:</p>
+        
+        <h4>🤔 Do you know? The Definitions Matter!</h4>
+        <ul>
+            <li><b>What is Obesity?</b> According to the WHO, it's an abnormal or excessive fat accumulation that presents a risk to health. A BMI of 30+ is globally considered obese.</li>
+            <li><b>The Indian Context:</b> For the Indian population, the classifications are adjusted. A person is considered <b>overweight</b> if their BMI is between <b>23.0 and 24.9</b>, and <b>obese</b> if their BMI is <b>25 or higher</b>.</li>
+            <li><b>What is BMI?</b> Body Mass Index is a simple check for healthy weight. It's your weight (kg) divided by the square of your height (m). A healthy BMI range is generally <b>18.5 to 24.9</b>.</li>
+        </ul>
+        
+        <h4>📈 The Bigger Picture: National & Global Trends</h4>
+    </div>
+    """, unsafe_allow_html=True)
 
-    closing_message = "<p style='margin-top: 20px;'><b>Your small, consistent steps contribute to changing these statistics for the better. Every walk, every healthy meal, every glass of water—it all counts!</b></p>"
-    
-    return f"{title}<div class='custom-box'>{content}</div>{closing_message}"
+    # Key Statistics using Streamlit's metric component for a nice visual
+    kpi_cols = st.columns(3)
+    kpi_cols[0].metric(label="Overweight Women (NFHS-5)", value="24%")
+    kpi_cols[1].metric(label="Overweight Men (NFHS-5)", value="23%")
+    kpi_cols[2].metric(label="Overweight Children <5yrs", value="3.4%", delta="up from 2.1% in 2015-16")
+
+    st.markdown("""
+    <div class="custom-box" style="margin-top: 20px;">
+        <ul>
+            <li>Globally, adult obesity (BMI > 30) has more than doubled since 1990, rising from <b>7% to 16%</b>.</li>
+            <li>In India (ages 15-49), <b>6.4% of women</b> and <b>4.0% of men</b> are classified as obese.</li>
+        </ul>
+        <p style="font-size: 0.9rem; text-align: right; margin-top: 15px;">
+            Source: <a href="https://www.pib.gov.in/PressReleaseIframePage.aspx?PRID=2107179" target="_blank" style="color: #00BCD4;">Press Information Bureau (Govt. of India)</a>
+        </p>
+    </div>
+    <p style='margin-top: 20px;'><b>Your small, consistent steps contribute to changing these statistics for the better. Every walk, every healthy meal, every glass of water—it all counts!</b></p>
+    """, unsafe_allow_html=True)
 
 
 # --- The App UI ---
@@ -387,7 +403,7 @@ elif st.session_state.step == 2:
     with tabs[1]: st.markdown(get_diet_recommendations(metrics['bmi_category'], user['diet'], user['living_situation'], name), unsafe_allow_html=True)
     with tabs[2]: st.markdown(get_workout_recommendations(metrics['bmi_category'], name), unsafe_allow_html=True)
     with tabs[3]: st.markdown(get_habit_and_confidence_tips(name), unsafe_allow_html=True)
-    with tabs[4]: st.markdown(get_india_snapshot(), unsafe_allow_html=True)
+    with tabs[4]: get_india_snapshot()
     with tabs[5]: st.markdown(get_gender_specific_tips(user['gender'], name), unsafe_allow_html=True)
     with tabs[6]: st.markdown(get_stress_management_tips(name), unsafe_allow_html=True)
 
