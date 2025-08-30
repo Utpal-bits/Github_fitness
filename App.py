@@ -104,6 +104,9 @@ def calculate_whtr(waist, h): return round(waist / h, 2) if waist > 0 and h > 0 
 # --- Content Generation Functions ---
 def get_diet_recommendations(category, diet_type, living_situation, name):
     title = f"<h3>🥗 Hey {name}, I hope you're having a great day! Let's talk food.</h3>"
+    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Healthy+Indian+Thali"
+    content = f"<img src='{image_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
+    
     base_info = f"""
     <div class="custom-box">
     <p>Based on your <b>{category}</b> status, here are some simple, balanced meal ideas that fit your <b>{diet_type}</b> preference. Think of this as a friendly guide, not a strict rulebook. The goal is to build a healthy relationship with food!</p>
@@ -172,14 +175,17 @@ def get_diet_recommendations(category, diet_type, living_situation, name):
     else: # I live with family
         living_advice = "<h4>💡 Eating with Family:</h4><p>No need for a separate meal! Just adjust your portions. Take a larger serving of sabzi and dal, and a smaller one of rice or roti. You're still sharing the meal and love, just in a way that serves your goals.</p>"
 
-    return f"{title}{base_info}<div class='custom-box'>{specific_advice}{living_advice}</div>"
+    return f"{title}{content}{base_info}<div class='custom-box'>{specific_advice}{living_advice}</div>"
 
 
 def get_workout_recommendations(category, name):
     title = f"<h3>🏃‍♀️ {name}, Let's Get Moving and Feel Amazing!</h3>"
-    content = ""
+    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Start+Your+Fitness+Journey"
+    content = f"<img src='{image_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
+    
+    workout_plan = ""
     if category in ["Overweight", "Obese"]:
-        content = """
+        workout_plan = """
         <h4>Your Goal: Build Consistency & Joyful Movement</h4>
         <ul>
             <li><b>Week 1: The Foundation.</b> Let's begin with a 30-minute brisk walk every day. Put on some music, listen to a podcast, and enjoy this time for yourself!</li>
@@ -189,14 +195,14 @@ def get_workout_recommendations(category, name):
         </ul>
         """
     else:
-        content = """
+        workout_plan = """
         <h4>Your Goal: Maintain Fitness & Build Strength</h4>
         <ul>
             <li><b>Your Routine:</b> Aim for 3-5 days of activity per week. A mix of cardio (walking, jogging, cycling) and strength training (yoga, bodyweight exercises) is ideal.</li>
             <li><b>Try Something New:</b> Explore online dance workouts, try Surya Namaskar for flexibility, or find a sport you enjoy. Keeping it fun is the key to consistency.</li>
         </ul>
         """
-    return f"{title}<div class='custom-box'>{content}</div>"
+    return f"{title}{content}<div class='custom-box'>{workout_plan}</div>"
 
 def get_habit_and_confidence_tips(name):
     title = f"<h3>💡 Hey {name}, Let's Build Habits for a Confident You!</h3>"
@@ -229,8 +235,10 @@ def get_gender_specific_tips(gender, name):
 
 def get_stress_management_tips(name):
     title = f"<h3>🧘‍♀️ {name}, Let's Talk About Stress & Wellness</h3>"
-    content = """<p>Stress is a normal part of life, but managing it is crucial for your health and weight management goals. High stress can lead to poor food choices and weight gain.</p><h4>Simple Techniques to Find Your Calm:</h4><ul><li><b>5-Minute Breathing:</b> When feeling overwhelmed, sit quietly and focus on your breath. Inhale for 4 seconds, hold for 4, and exhale for 6. Repeat for 5 minutes.</li><li><b>Digital Detox:</b> Try to set aside 30 minutes every day where you put your phone away. Go for a walk, listen to music, or just sit with your thoughts.</li><li><b>Schedule 'Me-Time':</b> Just like a meeting, block out time in your calendar for a hobby or activity you love. It's non-negotiable!</li><li><b>Get Quality Sleep:</b> Aim for 7-8 hours of sleep. A well-rested mind is a less-stressed mind. Poor sleep can seriously impact your health goals.</li></ul>"""
-    return f"{title}<div class='custom-box'>{content}</div>"
+    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Find+Your+Calm"
+    content = f"<img src='{image_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
+    tips = """<p>Stress is a normal part of life, but managing it is crucial for your health. High stress can lead to poor food choices and impact your goals.</p><h4>Simple Techniques to Find Your Calm:</h4><ul><li><b>5-Minute Breathing:</b> When feeling overwhelmed, sit quietly and focus on your breath. Inhale for 4 seconds, hold for 4, and exhale for 6. Repeat for 5 minutes.</li><li><b>Digital Detox:</b> Try to set aside 30 minutes every day where you put your phone away. Go for a walk, listen to music, or just sit with your thoughts.</li><li><b>Schedule 'Me-Time':</b> Just like a meeting, block out time in your calendar for a hobby or activity you love. It's non-negotiable!</li><li><b>Get Quality Sleep:</b> Aim for 7-8 hours of sleep. A well-rested mind is a less-stressed mind.</li></ul>"""
+    return f"{title}{content}<div class='custom-box'>{tips}</div>"
     
 def get_20_day_plan(name, category, weight):
     today = date.today()
@@ -241,7 +249,10 @@ def get_20_day_plan(name, category, weight):
     elif category == "Underweight": target_weight += 1.0
         
     title = f"<h3>🎯 Your 20-Day Kickstart Plan, {name}!</h3>"
-    content = f"""
+    chart_url = f"https://placehold.co/800x200/272727/00BCD4?text=Your+Journey:+Day+1+to+Day+20"
+    content = f"<img src='{chart_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
+
+    plan_details = f"""
     <p>Today is <b>{today.strftime('%B %d, %Y')}</b>. Let's start a 20-day challenge to build momentum! Consistency is more powerful than intensity. Your projected target is to reach <b>{target_weight:.1f} kg</b> by <b>{end_date.strftime('%B %d, %Y')}</b>.</p>
     <h4>Your Daily Mini-Goals:</h4>
     <ul>
@@ -252,11 +263,33 @@ def get_20_day_plan(name, category, weight):
     </ul>
     <p>That's it! Small, achievable steps. You can absolutely do this. Let's check in after 20 days and see the amazing progress you've made!</p>
     """
-    return f"{title}<div class='custom-box'>{content}</div>"
+    return f"{title}{content}<div class='custom-box'>{plan_details}</div>"
+
+def get_india_snapshot():
+    title = "<h3>🇮🇳 India's Health Snapshot: You're Part of a National Movement!</h3>"
+    content = """
+    <p>Your decision to focus on your health is incredibly important. You're not just improving your own life; you're joining millions of Indians who are actively working towards a healthier future. Here's a look at the bigger picture:</p>
+    """
+    
+    kpi_cols = st.columns(3)
+    with kpi_cols[0]:
+        st.metric(label="Obesity in India (Adults, 2022)", value="70 Million+", delta="A growing concern", delta_color="inverse")
+        st.write("Recent data shows a significant rise, especially among women (44M) compared to men (26M).")
+    with kpi_cols[1]:
+        st.metric(label="Physical Inactivity", value="~54% of Adults", delta="More movement is needed", delta_color="inverse")
+        st.write("Over half of the adult population doesn't meet the recommended physical activity levels.")
+    with kpi_cols[2]:
+        st.metric(label="Common Deficiencies", value="Iron, Vit B12 & D", delta="Nutrient gap is common", delta_color="inverse")
+        st.write("Many Indian diets, while rich in flavour, can lack these crucial micronutrients.")
+
+    closing_message = "<p style='margin-top: 20px;'><b>Your small, consistent steps contribute to changing these statistics for the better. Every walk, every healthy meal, every glass of water—it all counts!</b></p>"
+    
+    return f"{title}<div class='custom-box'>{content}</div>{closing_message}"
 
 
 # --- The App UI ---
 st.title("✨ Welcome to Your Personal Wellness Coach!")
+st.image("https://placehold.co/1200x300/000000/FF6F00?text=Your+Health+Journey+Starts+Now", use_column_width=True)
 st.markdown("<h3>I'm here to guide you on your journey to a healthier, more confident you. Let's do this together!</h3>", unsafe_allow_html=True)
 
 # --- Step 0: Collect User Info ---
@@ -349,13 +382,14 @@ elif st.session_state.step == 2:
     
     st.header(f"Your Action Plan for a Healthier, More Confident You!")
     
-    tabs = st.tabs(["🎯 Your 20-Day Goal", "🥗 Diet Plan", "🏃‍♀️ Workout Plan", "💡 Habits & Confidence", "🌟 Personalized Insights", "🧘‍♀️ Stress & Wellness"])
+    tabs = st.tabs(["🎯 Your 20-Day Goal", "🥗 Diet Plan", "🏃‍♀️ Workout Plan", "💡 Habits & Confidence", "🇮🇳 India Health Snapshot", "🌟 Personalized Insights", "🧘‍♀️ Stress & Wellness"])
     with tabs[0]: st.markdown(get_20_day_plan(name, metrics['bmi_category'], user['weight']), unsafe_allow_html=True)
     with tabs[1]: st.markdown(get_diet_recommendations(metrics['bmi_category'], user['diet'], user['living_situation'], name), unsafe_allow_html=True)
     with tabs[2]: st.markdown(get_workout_recommendations(metrics['bmi_category'], name), unsafe_allow_html=True)
     with tabs[3]: st.markdown(get_habit_and_confidence_tips(name), unsafe_allow_html=True)
-    with tabs[4]: st.markdown(get_gender_specific_tips(user['gender'], name), unsafe_allow_html=True)
-    with tabs[5]: st.markdown(get_stress_management_tips(name), unsafe_allow_html=True)
+    with tabs[4]: st.markdown(get_india_snapshot(), unsafe_allow_html=True)
+    with tabs[5]: st.markdown(get_gender_specific_tips(user['gender'], name), unsafe_allow_html=True)
+    with tabs[6]: st.markdown(get_stress_management_tips(name), unsafe_allow_html=True)
 
     st.divider()
     st.subheader("🔔 Motivational Reminders")
