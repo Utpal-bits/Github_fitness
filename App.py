@@ -14,9 +14,9 @@ st.markdown("""
 <style>
     /* Main background and font */
     .stApp {
-        background-color: #FFF8E1; /* A warm, light cream background */
+        background-color: #000000; /* Set background to black */
         font-family: 'Poppins', sans-serif;
-        color: #000000; /* Set default text to black */
+        color: #FFFFFF; /* Set default text to white */
     }
     
     /* Title style */
@@ -27,12 +27,12 @@ st.markdown("""
 
     /* Subheader style */
     h2, h3 {
-        color: #00838F; /* A calming, deep teal for headers */
+        color: #00BCD4; /* A lighter, vibrant teal for headers on dark background */
     }
 
     /* Custom styled boxes for recommendations */
     .custom-box {
-        background-color: #FFFFFF;
+        background-color: #272727; /* Dark grey for a subtle contrast */
         border-left: 10px solid #FFC107; /* A cheerful yellow accent */
         border-radius: 10px;
         padding: 20px;
@@ -41,11 +41,14 @@ st.markdown("""
     }
     .custom-box p {
         font-size: 1.1rem; /* Slightly larger font size for readability */
-        color: #000000; /* Changed to black */
+        color: #FFFFFF; /* Changed to white */
     }
     .custom-box ul {
         font-size: 1.1rem;
-        color: #000000; /* Changed to black */
+        color: #FFFFFF; /* Changed to white */
+    }
+    .custom-box h4 {
+        color: #FFC107; /* Match the yellow accent for sub-titles inside boxes */
     }
 
     /* Button style */
@@ -87,9 +90,9 @@ def classify_bmi(bmi):
     return "Obese"
 
 # --- Content Generation Functions (Expanded & Styled) ---
-
+# NOTE: Titles changed from Markdown '###' to HTML '<h3>' to fix rendering bug.
 def get_diet_recommendations(category, diet_type, living_situation, name):
-    title = f"### 🥗 Namaste {name}, Let's Nourish Your Body!"
+    title = f"<h3>🥗 Namaste {name}, Let's Nourish Your Body!</h3>"
     base_info = f"""
     <div class="custom-box">
     <p>Based on your <b>{category}</b> status, here are some simple, balanced meal ideas that fit your <b>{diet_type}</b> preference. Think of this as a friendly guide, not a strict rulebook. The goal is to build a healthy relationship with food!</p>
@@ -130,11 +133,11 @@ def get_diet_recommendations(category, diet_type, living_situation, name):
     else: # With Family
         living_advice = "<h4>💡 Eating with Family:</h4><p>No need for a separate meal! Just adjust your portions. Take a larger serving of sabzi and dal, and a smaller one of rice or roti. You're still sharing the meal and love, just in a way that serves your goals.</p>"
 
-    return f"{title}<div class='custom-box'>{base_info}{specific_advice}{living_advice}</div>"
+    return f"{title}{base_info}<div class='custom-box'>{specific_advice}{living_advice}</div>"
 
 
 def get_workout_recommendations(category, name):
-    title = f"### 🏃‍♀️ {name}, Let's Get Moving and Feel Amazing!"
+    title = f"<h3>🏃‍♀️ {name}, Let's Get Moving and Feel Amazing!</h3>"
     content = ""
     if category in ["Overweight", "Obese"]:
         content = """
@@ -158,7 +161,7 @@ def get_workout_recommendations(category, name):
     return f"{title}<div class='custom-box'>{content}</div>"
 
 def get_habit_and_confidence_tips(name):
-    title = f"### 💡 {name}, Let's Build Habits for a Confident You!"
+    title = f"<h3>💡 {name}, Let's Build Habits for a Confident You!</h3>"
     content = f"""
     <h4>Small Steps, Giant Leaps</h4>
     <ul>
@@ -176,7 +179,7 @@ def get_habit_and_confidence_tips(name):
     return f"{title}<div class='custom-box'>{content}</div>"
     
 def get_gender_specific_tips(gender, category, name):
-    title = f"### 🌟 Personalized Insights Just for You, {name}"
+    title = f"<h3>🌟 Personalized Insights Just for You, {name}</h3>"
     content = ""
     if gender == "Female":
         content = """
@@ -208,7 +211,7 @@ def get_gender_specific_tips(gender, category, name):
     return f"{title}<div class='custom-box'>{content}</div>"
 
 def get_stress_management_tips(name):
-    title = f"### 🧘‍♀️ {name}, Let's Talk About Stress & Wellness"
+    title = f"<h3>🧘‍♀️ {name}, Let's Talk About Stress & Wellness</h3>"
     content = """
     <p>Stress is a normal part of life, but managing it is crucial for your health and weight management goals. High stress can lead to poor food choices and weight gain.</p>
     <h4>Simple Techniques to Find Your Calm:</h4>
