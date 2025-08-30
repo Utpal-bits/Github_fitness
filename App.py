@@ -268,18 +268,19 @@ def get_20_day_plan(name, category, weight):
 def get_india_snapshot():
     st.markdown("<h3>🇮🇳 India's Health Snapshot: You're Part of a National Movement!</h3>", unsafe_allow_html=True)
     
+    # Using a single markdown call with corrected inline styles for headers to fix rendering issues.
     st.markdown("""
     <div class="custom-box">
         <p>Your decision to focus on your health is incredibly important. You're joining millions of Indians working towards a healthier future. Here's a look at the bigger picture:</p>
         
-        <h4>🤔 Do you know? The Definitions Matter!</h4>
+        <p style="color: #FFC107; font-size: 1.25rem; font-weight: 600;">🤔 Do you know? The Definitions Matter!</p>
         <ul>
             <li><b>What is Obesity?</b> According to the WHO, it's an abnormal or excessive fat accumulation that presents a risk to health. A BMI of 30+ is globally considered obese.</li>
             <li><b>The Indian Context:</b> For the Indian population, the classifications are adjusted. A person is considered <b>overweight</b> if their BMI is between <b>23.0 and 24.9</b>, and <b>obese</b> if their BMI is <b>25 or higher</b>.</li>
             <li><b>What is BMI?</b> Body Mass Index is a simple check for healthy weight. It's your weight (kg) divided by the square of your height (m). A healthy BMI range is generally <b>18.5 to 24.9</b>.</li>
         </ul>
         
-        <h4>📈 The Bigger Picture: National & Global Trends</h4>
+        <p style="color: #FFC107; font-size: 1.25rem; font-weight: 600;">📈 The Bigger Picture: National & Global Trends</p>
     </div>
     """, unsafe_allow_html=True)
 
