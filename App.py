@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from datetime import date, timedelta
 
 # --- App Configuration ---
 st.set_page_config(
@@ -9,87 +10,56 @@ st.set_page_config(
 )
 
 # --- Custom Styling (CSS) ---
-# This injects custom CSS for a more vibrant, animated, and readable app.
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-
     /* Main background and font */
     .stApp {
-        background: linear-gradient(to right top, #d4fc79, #96e6a1);
+        background-color: #000000; /* Set background to black */
         font-family: 'Poppins', sans-serif;
+        color: #FFFFFF; /* Set default text to white */
     }
     
     /* Title style */
     h1 {
-        color: #004d40; /* Dark Teal */
+        color: #FF6F00; /* A vibrant orange for the main title */
         font-weight: 700;
-        text-align: center;
     }
-    
+
     /* Subheader style */
     h2, h3 {
-        color: #00695c; /* Medium Teal */
+        color: #00BCD4; /* A lighter, vibrant teal for headers on dark background */
     }
 
-    /* Style for form labels */
-    .form-label {
-        font-size: 1.4rem !important;
-        font-weight: 600;
-        color: #004d40;
-    }
-
-    /* Custom styled boxes for recommendations with fade-in animation */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    /* Custom styled boxes for recommendations */
     .custom-box {
-        background-color: #FFFFFF;
-        border-left: 10px solid #ffca28; /* Amber accent */
+        background-color: #272727; /* Dark grey for a subtle contrast */
+        border-left: 10px solid #FFC107; /* A cheerful yellow accent */
         border-radius: 10px;
-        padding: 25px;
-        margin-bottom: 20px;
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        animation: fadeIn 0.5s ease-out forwards;
-    }
-    .custom-box p, .custom-box ul {
-        font-size: 1.1rem;
-        color: #37474F;
-    }
-
-    /* Style for the new target panel */
-    .target-box {
-        background: #00796b; /* Teal Background */
-        color: white;
         padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        margin-bottom: 20px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    .target-box h3 {
-        color: white;
-        font-weight: 700;
-        margin-bottom: 10px;
+    .custom-box p {
+        font-size: 1.1rem; /* Slightly larger font size for readability */
+        color: #FFFFFF; /* Changed to white */
     }
-    .target-box p {
-        font-size: 1.5rem;
-        font-weight: bold;
+    .custom-box ul {
+        font-size: 1.1rem;
+        color: #FFFFFF; /* Changed to white */
+    }
+    .custom-box h4 {
+        color: #FFC107; /* Match the yellow accent for sub-titles inside boxes */
     }
 
     /* Button style */
     .stButton>button {
-        background-color: #ff6f00;
+        background-color: #FF6F00;
         color: white;
-        border-radius: 25px;
-        padding: 12px 24px;
+        border-radius: 20px;
+        padding: 10px 20px;
         font-size: 1.2rem;
         font-weight: bold;
         border: none;
-        transition: transform 0.2s;
-    }
-    .stButton>button:hover {
-        transform: scale(1.05);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -101,121 +71,141 @@ if 'step' not in st.session_state:
 if 'user_data' not in st.session_state:
     st.session_state.user_data = {
         "name": "", "weight": 0.0, "height": 0.0, "diet": "Vegetarian",
-        "living_situation": "With Family", "gender": "Female"
+        "living_situation": "With Family", "gender": "Female",
+        "age": 0, "waist": 0
     }
-if 'bmi' not in st.session_state: st.session_state.bmi = 0
-if 'bmi_category' not in st.session_state: st.session_state.bmi_category = ""
+if 'metrics' not in st.session_state:
+    st.session_state.metrics = {}
 
 
-# --- Helper Functions ---
-def calculate_bmi(weight_kg, height_cm):
-    if height_cm > 0:
-        return round(weight_kg / ((height_cm / 100) ** 2), 1)
-    return 0
-
+# --- Helper Functions for Health Calculations ---
+def calculate_bmi(w, h): return round(w / ((h / 100) ** 2), 1) if h > 0 else 0
 def classify_bmi(bmi):
     if bmi < 18.5: return "Underweight"
     if 18.5 <= bmi <= 24.9: return "Healthy Weight"
     if 25.0 <= bmi <= 29.9: return "Overweight"
     return "Obese"
 
-# --- Content Generation Functions (Expanded & Gender-Specific) ---
+# --- Advanced Metric Functions ---
+def calculate_bsa(w, h): return round(0.007184 * (w ** 0.425) * (h ** 0.725), 2) if w > 0 and h > 0 else 0
+def calculate_pi(w, h): return round(w / ((h/100) ** 3), 1) if h > 0 else 0
+def calculate_bmr(w, h, age, gender):
+    if w <= 0 or h <= 0 or age <= 0: return 0
+    if gender == "Male": return round(10 * w + 6.25 * h - 5 * age + 5)
+    return round(10 * w + 6.25 * h - 5 * age - 161)
+def calculate_ibw(h, gender):
+    h_inches = h * 0.393701
+    if h_inches <= 60: return 0
+    if gender == "Male": return round(52 + 1.9 * (h_inches - 60))
+    return round(49 + 1.7 * (h_inches - 60))
+def calculate_whtr(waist, h): return round(waist / h, 2) if waist > 0 and h > 0 else 0
 
-def get_diet_recommendations(category, diet_type, gender, name):
-    title = f"### 🥗 Namaste {name}, Here's Your Personalized Nutrition Guide!"
+
+# --- Content Generation Functions ---
+def get_diet_recommendations(category, diet_type, living_situation, name):
+    title = f"<h3>🥗 Hey {name}, I hope you're having a great day! Let's talk food.</h3>"
+    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Healthy+Indian+Thali"
+    content = f"<img src='{image_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
+    
     base_info = f"""
     <div class="custom-box">
-    <p>Based on your <b>{category}</b> status, here are meal ideas for your <b>{diet_type}</b> preference. The goal is to nourish your body and build a healthy relationship with food!</p>
+    <p>Based on your <b>{category}</b> status, here are some simple, balanced meal ideas that fit your <b>{diet_type}</b> preference. Think of this as a friendly guide, not a strict rulebook. The goal is to build a healthy relationship with food!</p>
     <h4>🌟 Golden Rules of Mindful Eating:</h4>
     <ul>
         <li><b>Stay Hydrated:</b> Aim for 2-3 litres of water daily. It's the simplest and most effective habit!</li>
-        <li><b>Portion Smarts:</b> Use a smaller plate. Fill half with vegetables/salad, a quarter with protein (dal/paneer/chicken), and a quarter with carbs (rice/roti).</li>
+        <li><b>Portion Smarts:</b> Use a smaller plate. When eating a thali, fill half your plate with vegetables/salad, a quarter with dal/protein, and a quarter with rice/roti.</li>
+        <li><b>Eat Slowly:</b> Savor each bite. It takes 20 minutes for your brain to register fullness.</li>
         <li><b>Smart Snacking:</b> For mid-meal hunger, grab a fruit, a handful of chana, or a bowl of dahi.</li>
     </ul>
     </div>
     """
     
     specific_advice = ""
-    # --- OVERWEIGHT/OBESE ---
     if category in ["Overweight", "Obese"]:
-        if gender == "Female":
-            specific_advice += "<h4>🎯 Your Focus: Hormonal Balance & Fat Loss</h4><p>We'll focus on nutrient-dense foods that support hormonal health and encourage sustainable fat loss.</p>"
-            if diet_type == "Vegetarian":
-                specific_advice += "<ul><li><b>Breakfast:</b> Moong dal chilla or a small bowl of oats upma. Focus on protein.</li><li><b>Lunch:</b> 1-2 multigrain rotis, a large bowl of dal (like spinach dal for iron), sabzi, and a big salad.</li><li><b>Dinner:</b> Keep it light. Vegetable khichdi, paneer bhurji, or lentil soup. Avoid carbs late at night.</li></ul>"
-            else: # Eggetarian/Non-Veg
-                specific_advice += "<ul><li><b>Breakfast:</b> 2 boiled eggs or an egg omelet with veggies.</li><li><b>Lunch:</b> Add grilled fish/chicken (100g) to your vegetarian meal for lean protein.</li><li><b>Dinner:</b> A simple egg/chicken curry with 1 roti or a large bowl of chicken soup.</li></ul>"
-        else: # Male
-            specific_advice += "<h4>🎯 Your Focus: Building Muscle & Reducing Fat</h4><p>We'll prioritize protein to build muscle, which boosts your metabolism and helps burn fat more effectively.</p>"
-            if diet_type == "Vegetarian":
-                specific_advice += "<ul><li><b>Breakfast:</b> Paneer sandwich (2 slices brown bread) or a large bowl of poha with peanuts.</li><li><b>Lunch:</b> 2-3 rotis, a large bowl of high-protein dal (chana/rajma), sabzi, salad, and a bowl of dahi.</li><li><b>Dinner:</b> Soya chunks curry or paneer tikka (baked) with a large salad.</li></ul>"
-            else: # Eggetarian/Non-Veg
-                specific_advice += "<ul><li><b>Breakfast:</b> 3-4 egg whites (omelet/bhurji).</li><li><b>Lunch:</b> 150g grilled chicken/fish, a large salad, a small portion of brown rice, and dal.</li><li><b>Dinner:</b> Chicken/fish curry (homestyle) with lots of veggies, avoid rice/roti if possible.</li></ul>"
+        specific_advice = """
+        <h4>🎯 Your Focus: Nutrient-Dense Foods</h4>
+        <p>We want foods that are high in nutrients but moderate in calories.</p>
+        """
+        if diet_type == "Vegetarian":
+            specific_advice += "<ul><li><b>Breakfast:</b> Oats upma, moong dal chilla, or poha with lots of veggies.</li><li><b>Lunch:</b> 2 multigrain rotis, a large bowl of dal, sabzi, and a big salad.</li><li><b>Dinner:</b> Keep it light! Vegetable khichdi, paneer bhurji, or a large bowl of lentil soup (dal).</li></ul>"
+        elif diet_type == "Eggetarian":
+            specific_advice += "<ul><li><b>Breakfast:</b> 2 boiled eggs or a simple egg bhurji with less oil.</li><li><b>Lunch:</b> Add boiled eggs to your veg thali for a protein boost.</li><li><b>Dinner:</b> A simple egg curry with 1-2 rotis.</li></ul>"
+        else:  # Non-Vegetarian
+            specific_advice += "<ul><li><b>Breakfast:</b> Egg bhurji or 2 boiled eggs.</li><li><b>Lunch:</b> 100g grilled chicken/fish with a large salad and a small portion of brown rice or one roti.</li><li><b>Dinner:</b> Homestyle chicken/fish curry (thin gravy) with lots of veggies.</li></ul>"
+
+    elif category == "Underweight":
+        specific_advice = """
+        <h4>🎯 Your Focus: Healthy & Sustainable Weight Gain</h4>
+        <p>Our goal is to nourish your body with calorie-dense and nutrient-rich foods to build strength and stamina in a healthy way.</p>
+        """
+        if diet_type == "Vegetarian":
+            specific_advice += """
+            <ul>
+                <li><b>Breakfast:</b> A bowl of dalia or oats cooked in milk with nuts and seeds. Or, 2 paneer-stuffed parathas with dahi.</li>
+                <li><b>Lunch:</b> A full thali with 2 rotis (with ghee), a generous serving of rice, dal, sabzi, and a side of paneer or tofu curry.</li>
+                <li><b>Dinner:</b> Khichdi made with extra ghee, or rajma/chana masala with rice. A glass of warm milk before bed is a great addition.</li>
+                <li><b>Snacks:</b> Peanut butter with apple slices, a handful of almonds/walnuts, or a banana shake.</li>
+            </ul>
+            """
+        elif diet_type == "Eggetarian":
+            specific_advice += """
+            <ul>
+                <li><b>Breakfast:</b> A 3-egg omelette with cheese and vegetables, served with 2 slices of whole wheat toast.</li>
+                <li><b>Lunch:</b> Add 2-3 boiled eggs to your standard vegetarian thali for an easy protein and calorie boost.</li>
+                <li><b>Dinner:</b> Egg curry with rice or roti, along with a hearty sabzi.</li>
+            </ul>
+            """
+        else:  # Non-Vegetarian
+            specific_advice += """
+            <ul>
+                <li><b>Breakfast:</b> 3-egg omelette or scrambled eggs with chicken sausages.</li>
+                <li><b>Lunch:</b> A generous portion of chicken or fish curry with rice, dal, and sabzi. Don't skip the carbs!</li>
+                <li><b>Dinner:</b> Grilled chicken/fish (150g) with roasted sweet potatoes and vegetables.</li>
+            </ul>
+            """
     
-    # --- UNDERWEIGHT ---
-    elif category == "Underweight":
-        if gender == "Female":
-            specific_advice += "<h4>🎯 Your Focus: Healthy Weight Gain & Strength</h4><p>We'll use nutrient-dense foods to build strength and gain weight in a healthy manner.</p><ul><li>Add healthy fats: Ghee on rotis, nuts, and seeds as snacks.</li><li>Include paneer, potatoes, sweet potatoes, and bananas.</li><li>A glass of milk with a pinch of turmeric before bed is excellent.</li></ul>"
-        else: # Male
-            specific_advice += "<h4>🎯 Your Focus: Muscle Gain & Calorie Surplus</h4><p>We need a healthy calorie surplus with a focus on protein to build muscle mass.</p><ul><li>Increase portion sizes for all meals.</li><li>Incorporate protein-rich snacks like a paneer sandwich, boiled eggs, or a chicken roll.</li><li>Add peanut butter to shakes or with brown bread. Sweet potato is your friend!</li></ul>"
+    else: # Healthy Weight
+        specific_advice = "<h4>🎯 Your Focus: Maintenance & Vitality</h4><p>You're doing great! Let's focus on maintaining this balance with variety and whole foods.</p><ul><li>Ensure a good mix of protein (dal, paneer, eggs, chicken), complex carbs (roti, brown rice), and colorful vegetables.</li></ul>"
 
-    # --- HEALTHY WEIGHT ---
-    else:
-        specific_advice = f"<h4>🎯 Your Focus: Maintenance & Vitality</h4><p>You're doing great, {name}! Let's focus on maintaining this balance with variety and whole foods to keep you energized.</p><ul><li>Ensure a good mix of protein (dal, paneer, eggs, chicken), complex carbs (roti, brown rice), and colorful vegetables in every meal.</li></ul>"
+    living_advice = ""
+    if living_situation == "I cook for myself":
+        living_advice = "<h4>💡 Tip for You:</h4><p>One-pot meals are your best friend! Think vegetable pulao, dal khichdi, or a quick paneer/chicken stir-fry. Easy, quick, and nutritious.</p>"
+    elif living_situation == "I live in a PG/Hostel":
+        living_advice = "<h4>💡 Making Smart Choices in the Mess:</h4><p>You can still eat healthy!<ul><li>Always take the salad if it's available.</li><li>Ask for an extra serving of dal and sabzi instead of a second helping of rice or puri.</li><li>Avoid fried items like pakoras or papad when you can.</li><li>Drink a glass of water before your meal to control your appetite.</li></ul></p>"
+    else: # I live with family
+        living_advice = "<h4>💡 Eating with Family:</h4><p>No need for a separate meal! Just adjust your portions. Take a larger serving of sabzi and dal, and a smaller one of rice or roti. You're still sharing the meal and love, just in a way that serves your goals.</p>"
 
-    return f"{title}{base_info}<div class='custom-box'>{specific_advice}</div>"
+    return f"{title}{content}{base_info}<div class='custom-box'>{specific_advice}{living_advice}</div>"
 
 
-def get_workout_recommendations(category, gender, name):
-    title = f"### 🏃‍♀️ {name}, Let's Get Moving and Feel Amazing!"
-    content = ""
-    # --- OVERWEIGHT/OBESE ---
+def get_workout_recommendations(category, name):
+    title = f"<h3>🏃‍♀️ {name}, Let's Get Moving and Feel Amazing!</h3>"
+    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Start+Your+Fitness+Journey"
+    content = f"<img src='{image_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
+    
+    workout_plan = ""
     if category in ["Overweight", "Obese"]:
-        if gender == "Female":
-            content = """
-            <h4>Your Goal: Consistency & Stamina</h4>
-            <p>Our focus is on building a consistent routine with activities that are gentle on the joints but effective for fat loss.</p>
-            <ul>
-                <li><b>Cardio (4-5 days/week):</b> Start with 30-45 minutes of brisk walking. You can also try cycling or Zumba for a fun alternative.</li>
-                <li><b>Strength (2 days/week):</b> Bodyweight exercises are perfect. Try 3 sets of 12 reps of:
-                    <ul><li>Chair Squats</li><li>Wall Push-ups</li><li>Glute Bridges</li></ul></li>
-                <li><b>Flexibility:</b> Gentle stretching or beginner Yoga (like Surya Namaskar) daily.</li>
-            </ul>
-            """
-        else: # Male
-            content = """
-            <h4>Your Goal: Burn Fat & Build a Strong Foundation</h4>
-            <p>We'll combine cardio for fat loss with strength training to build muscle, which will supercharge your metabolism.</p>
-            <ul>
-                <li><b>Cardio (3-4 days/week):</b> Aim for 30 minutes of jogging, cycling, or skipping. High-Intensity Interval Training (HIIT) for 15-20 mins is also very effective.</li>
-                <li><b>Strength (3 days/week):</b> Focus on compound movements. Try 3 sets of 10-12 reps of:
-                    <ul><li>Bodyweight Squats</li><li>Push-ups (on knees if needed)</li><li>Plank (hold for 30-60 seconds)</li><li>Lunges</li></ul></li>
-            </ul>
-            """
-    # --- UNDERWEIGHT ---
-    elif category == "Underweight":
-        content = """
-        <h4>Your Goal: Build Muscle & Strength</h4>
-        <p>The focus here is less on intense cardio and more on resistance training to build healthy muscle mass.</p>
+        workout_plan = """
+        <h4>Your Goal: Build Consistency & Joyful Movement</h4>
         <ul>
-            <li><b>Strength Training (3-4 days/week):</b> This is your priority. Focus on compound exercises like squats, push-ups, and lunges. If you have access to a gym, basic weight training is highly recommended.</li>
-            <li><b>Light Cardio (1-2 days/week):</b> A 20-30 minute walk or a light jog is enough to keep your heart healthy without burning too many calories.</li>
+            <li><b>Week 1: The Foundation.</b> Let's begin with a 30-minute brisk walk every day. Put on some music, listen to a podcast, and enjoy this time for yourself!</li>
+            <li><b>Week 2: Building Stamina.</b> Increase your walk to 45 minutes. Focus on your breathing. You're building a powerful habit!</li>
+            <li><b>Week 3: Adding Strength.</b> After your walk, let's add 2 sets of 10 simple squats and 10 wall push-ups. This will start building muscle, which boosts metabolism.</li>
+            <li><b>Beyond:</b> We'll slowly increase the duration and add more fun exercises. The goal is to find movement you love!</li>
         </ul>
         """
-    # --- HEALTHY WEIGHT ---
     else:
-        content = f"""
-        <h4>Your Goal: Maintain Fitness & Feel Great, {name}!</h4>
-        <p>You are in a great spot! Let's keep things interesting to ensure you stay consistent and strong.</p>
+        workout_plan = """
+        <h4>Your Goal: Maintain Fitness & Build Strength</h4>
         <ul>
-            <li><b>Your Routine:</b> Aim for 3-5 days of activity per week.</li>
-            <li><b>Mix it Up:</b> A mix of cardio (running, swimming), strength (yoga, bodyweight exercises, gym), and a sport you enjoy (like badminton or cricket) is ideal to keep you motivated and fit.</li>
+            <li><b>Your Routine:</b> Aim for 3-5 days of activity per week. A mix of cardio (walking, jogging, cycling) and strength training (yoga, bodyweight exercises) is ideal.</li>
+            <li><b>Try Something New:</b> Explore online dance workouts, try Surya Namaskar for flexibility, or find a sport you enjoy. Keeping it fun is the key to consistency.</li>
         </ul>
         """
-    return f"{title}<div class='custom-box'>{content}</div>"
-
+    return f"{title}{content}<div class='custom-box'>{workout_plan}</div>"
 
 def get_habit_and_confidence_tips(name):
-    title = f"### 💡 {name}, Let's Build Habits for a Confident You!"
+    title = f"<h3>💡 Hey {name}, Let's Build Habits for a Confident You!</h3>"
     content = f"""
     <h4>Small Steps, Giant Leaps</h4>
     <ul>
@@ -231,99 +221,210 @@ def get_habit_and_confidence_tips(name):
     </ul>
     """
     return f"{title}<div class='custom-box'>{content}</div>"
+    
+def get_gender_specific_tips(gender, name):
+    title = f"<h3>🌟 Personalized Insights Just for You, {name}</h3>"
+    content = ""
+    if gender == "Female":
+        content = """<h4>Health Focus for Women:</h4><ul><li><b>Iron & Calcium are Key:</b> Ensure your diet is rich in iron (spinach, lentils, beans) and calcium (dairy, ragi, sesame seeds) for bone health and energy levels.</li><li><b>Hormonal Harmony:</b> Regular exercise and a balanced diet can significantly help with managing PMS and maintaining hormonal balance.</li><li><b>Stress & Weight:</b> For many women, stress can lead to weight gain, especially around the midsection. Our stress management tips are extra important for you!</li></ul>"""
+    elif gender == "Male":
+        content = """<h4>Health Focus for Men:</h4><ul><li><b>Protein for Muscle:</b> To build and maintain muscle mass, ensure adequate protein intake from sources like dal, paneer, eggs, or lean meats with every meal.</li><li><b>Heart Health:</b> Focus on a diet low in unhealthy fats and high in fiber (vegetables, whole grains) to keep your heart strong.</li><li><b>Mind the Belly:</b> For many men, excess weight tends to accumulate around the abdomen. Consistent cardio and a clean diet are the best tools to manage this.</li></ul>"""
+    else:
+        content = """<h4>A Holistic Approach to Your Health:</h4><ul><li><b>Listen to Your Body:</b> Your body gives you unique signals. Pay attention to your energy levels, sleep quality, and mood. These are your best indicators of health.</li><li><b>Balanced Nutrition is Universal:</b> A diet rich in a variety of whole foods—vegetables, proteins, healthy fats, and complex carbs—is the foundation of good health for everyone.</li><li><b>Consistency is Your Power:</b> Building a routine that you can stick with is more important than any single diet or workout.</li></ul>"""
+    return f"{title}<div class='custom-box'>{content}</div>"
+
+def get_stress_management_tips(name):
+    title = f"<h3>🧘‍♀️ {name}, Let's Talk About Stress & Wellness</h3>"
+    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Find+Your+Calm"
+    content = f"<img src='{image_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
+    tips = """<p>Stress is a normal part of life, but managing it is crucial for your health. High stress can lead to poor food choices and impact your goals.</p><h4>Simple Techniques to Find Your Calm:</h4><ul><li><b>5-Minute Breathing:</b> When feeling overwhelmed, sit quietly and focus on your breath. Inhale for 4 seconds, hold for 4, and exhale for 6. Repeat for 5 minutes.</li><li><b>Digital Detox:</b> Try to set aside 30 minutes every day where you put your phone away. Go for a walk, listen to music, or just sit with your thoughts.</li><li><b>Schedule 'Me-Time':</b> Just like a meeting, block out time in your calendar for a hobby or activity you love. It's non-negotiable!</li><li><b>Get Quality Sleep:</b> Aim for 7-8 hours of sleep. A well-rested mind is a less-stressed mind.</li></ul>"""
+    return f"{title}{content}<div class='custom-box'>{tips}</div>"
+    
+def get_20_day_plan(name, category, weight):
+    today = date.today()
+    end_date = today + timedelta(days=20)
+    target_weight = weight
+    if category == "Overweight": target_weight -= 1.5
+    elif category == "Obese": target_weight -= 2.0
+    elif category == "Underweight": target_weight += 1.0
+        
+    title = f"<h3>🎯 Your 20-Day Kickstart Plan, {name}!</h3>"
+    chart_url = f"https://placehold.co/800x200/272727/00BCD4?text=Your+Journey:+Day+1+to+Day+20"
+    content = f"<img src='{chart_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
+
+    plan_details = f"""
+    <p>Today is <b>{today.strftime('%B %d, %Y')}</b>. Let's start a 20-day challenge to build momentum! Consistency is more powerful than intensity. Your projected target is to reach <b>{target_weight:.1f} kg</b> by <b>{end_date.strftime('%B %d, %Y')}</b>.</p>
+    <h4>Your Daily Mini-Goals:</h4>
+    <ul>
+        <li><b>Movement:</b> Complete your recommended walk or activity.</li>
+        <li><b>Hydration:</b> Drink at least 8 glasses of water.</li>
+        <li><b>Mindful Meal:</b> For at least one meal, eat slowly without distractions.</li>
+        <li><b>Reflection:</b> Before bed, think of one healthy choice you made today that made you feel good.</li>
+    </ul>
+    <p>That's it! Small, achievable steps. You can absolutely do this. Let's check in after 20 days and see the amazing progress you've made!</p>
+    """
+    return f"{title}{content}<div class='custom-box'>{plan_details}</div>"
+
+def get_india_snapshot():
+    st.markdown("<h3>🇮🇳 India's Health Snapshot: You're Part of a National Movement!</h3>", unsafe_allow_html=True)
+    
+    # This block uses st.markdown for each part to ensure proper rendering.
+    with st.container():
+        st.markdown("""
+        <div class="custom-box">
+            <p>Your decision to focus on your health is incredibly important. You're joining millions of Indians working towards a healthier future. Here's a look at the bigger picture:</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class="custom-box">
+            <h4>🤔 Do you know? The Definitions Matter!</h4>
+            <ul>
+                <li><b>What is Obesity?</b> According to the WHO, it's an abnormal or excessive fat accumulation that presents a risk to health. A BMI of 30+ is globally considered obese.</li>
+                <li><b>The Indian Context:</b> For the Indian population, the classifications are adjusted. A person is considered <b>overweight</b> if their BMI is between <b>23.0 and 24.9</b>, and <b>obese</b> if their BMI is <b>25 or higher</b>.</li>
+                <li><b>What is BMI?</b> Body Mass Index is a simple check for healthy weight. It's your weight (kg) divided by the square of your height (m). A healthy BMI range is generally <b>18.5 to 24.9</b>.</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="custom-box">
+            <h4>📈 The Bigger Picture: National & Global Trends</h4>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+    # Key Statistics using Streamlit's metric component for a nice visual
+    kpi_cols = st.columns(3)
+    kpi_cols[0].metric(label="Overweight Women (NFHS-5)", value="24%")
+    kpi_cols[1].metric(label="Overweight Men (NFHS-5)", value="23%")
+    kpi_cols[2].metric(label="Overweight Children <5yrs", value="3.4%", delta="up from 2.1% in 2015-16")
+
+    st.markdown("""
+    <div class="custom-box" style="margin-top: 20px;">
+        <ul>
+            <li>Globally, adult obesity (BMI > 30) has more than doubled since 1990, rising from <b>7% to 16%</b>.</li>
+            <li>In India (ages 15-49), <b>6.4% of women</b> and <b>4.0% of men</b> are classified as obese.</li>
+        </ul>
+        <p style="font-size: 0.9rem; text-align: right; margin-top: 15px;">
+            Source: <a href="https://www.pib.gov.in/PressReleaseIframePage.aspx?PRID=2107179" target="_blank" style="color: #00BCD4;">Press Information Bureau (Govt. of India)</a>
+        </p>
+    </div>
+    <p style='margin-top: 20px;'><b>Your small, consistent steps contribute to changing these statistics for the better. Every walk, every healthy meal, every glass of water—it all counts!</b></p>
+    """, unsafe_allow_html=True)
+
 
 # --- The App UI ---
-
 st.title("✨ Welcome to Your Personal Wellness Coach!")
+st.image("https://placehold.co/1200x300/000000/FF6F00?text=Your+Health+Journey+Starts+Now", use_container_width=True)
 st.markdown("<h3>I'm here to guide you on your journey to a healthier, more confident you. Let's do this together!</h3>", unsafe_allow_html=True)
-st.markdown("---")
 
-# --- Step 1: Collect User Info ---
+# --- Step 0: Collect User Info ---
 if st.session_state.step == 0:
     with st.form("user_info_form"):
         st.header("First, Tell Me a Bit About Yourself")
+        name = st.text_input("What is your name?", placeholder="e.g., Priya Sharma")
+        gender = st.selectbox("What is your gender?", ("Female", "Male", "Prefer not to say / Other"))
         
-        st.markdown('<p class="form-label">What is your name?</p>', unsafe_allow_html=True)
-        name = st.text_input("Name", placeholder="e.g., Priya Sharma", label_visibility="collapsed")
+        # Basic Info
+        weight = st.number_input("Weight (kg)", 30.0, 200.0, 65.0, 0.5)
+        height = st.number_input("Height (in cm)", 100.0, 250.0, 165.0, 1.0)
+        diet = st.selectbox("Dietary preference?", ("Vegetarian", "Eggetarian", "Non-Vegetarian"))
+        living_situation = st.selectbox("How do you manage meals?", ("I live with family", "I cook for myself", "I live in a PG/Hostel"))
         
-        st.markdown('<p class="form-label">What is your gender?</p>', unsafe_allow_html=True)
-        gender = st.selectbox("Gender", ("Female", "Male"), label_visibility="collapsed")
-        
-        st.markdown('<p class="form-label">What is your current weight (in kg)?</p>', unsafe_allow_html=True)
-        weight = st.number_input("Weight (kg)", 30.0, 200.0, 65.0, 0.5, label_visibility="collapsed")
-        
-        st.markdown('<p class="form-label">What is your height (in cm)?</p>', unsafe_allow_html=True)
-        height = st.number_input("Height (cm)", 100.0, 250.0, 165.0, 1.0, label_visibility="collapsed")
-        
-        st.markdown('<p class="form-label">What is your dietary preference?</p>', unsafe_allow_html=True)
-        diet = st.selectbox("Diet", ("Vegetarian", "Eggetarian", "Non-Vegetarian"), label_visibility="collapsed")
-        
-        st.markdown('<p class="form-label">How do you manage your meals?</p>', unsafe_allow_html=True)
-        living_situation = st.selectbox("Meals", 
-            ("I live with family and eat what's cooked", 
-             "I cook for myself / control my meals", 
-             "I live in a PG/Hostel and eat from a mess"), label_visibility="collapsed")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        submitted = st.form_submit_button("Create My Personalized Plan!")
-        
+        # Optional Advanced Info
+        with st.expander("Optional: Add more details for a deeper analysis"):
+            age = st.number_input("Your Age", 0, 100, 25)
+            waist = st.number_input("Waist Circumference (in cm)", 0, 200, 80)
+
+        submitted = st.form_submit_button("Preview My Plan!")
         if submitted:
-            if not name:
-                st.error("Please enter your name to continue.")
+            if not name: st.error("Please enter your name.")
             else:
                 st.session_state.user_data = {
                     "name": name, "weight": weight, "height": height, "diet": diet,
-                    "living_situation": "With Family" if "family" in living_situation else ("PG/Hostel" if "PG/Hostel" in living_situation else "Cook Alone"),
-                    "gender": gender
+                    "living_situation": living_situation, "gender": gender,
+                    "age": age, "waist": waist
                 }
                 st.session_state.step = 1
                 st.rerun()
 
-# --- Step 2: Analyze and Show Plan ---
+# --- Step 1: Preview and Confirmation ---
 elif st.session_state.step == 1:
     user = st.session_state.user_data
-    st.session_state.bmi = calculate_bmi(user['weight'], user['height'])
-    st.session_state.bmi_category = classify_bmi(st.session_state.bmi)
+    w, h, age, gender, waist = user['weight'], user['height'], user['age'], user['gender'], user['waist']
+    
+    # Calculate all metrics
+    bmi = calculate_bmi(w, h)
+    bmi_category = classify_bmi(bmi)
+    st.session_state.metrics = {
+        'bmi': bmi, 'bmi_category': bmi_category,
+        'bsa': calculate_bsa(w, h),
+        'pi': calculate_pi(w, h),
+        'bmr': calculate_bmr(w, h, age, gender),
+        'ibw': calculate_ibw(h, gender),
+        'whtr': calculate_whtr(waist, h)
+    }
+    metrics = st.session_state.metrics
     name = user['name'].split(" ")[0]
-    
-    with st.spinner(f'Crafting a personalized plan just for you, {name}...'):
-        time.sleep(2)
-    
-    st.balloons() # Animation!
-    
+
+    with st.spinner(f'Analyzing your details, {name}...'): time.sleep(1)
     st.header(f"Alright {name}, Here's Your Personalized Health Snapshot!")
     
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Your BMI Analysis")
-        st.metric(label="Your Body Mass Index (BMI) is", value=st.session_state.bmi)
-        st.write(f"This places you in the **'{st.session_state.bmi_category}'** category.")
-    
+        st.metric("Body Mass Index (BMI)", metrics['bmi'])
+        st.write(f"This places you in the **'{metrics['bmi_category']}'** category.")
     with col2:
-        st.subheader("Your 20-Day Target")
-        target_message = ""
-        target_weight = 0
-        if st.session_state.bmi_category in ["Overweight", "Obese"]:
-            target_weight = user['weight'] - 2
-            target_message = f"A healthy goal for the next 20 days is to aim for **{target_weight:.1f} kg**."
-        elif st.session_state.bmi_category == "Underweight":
-            target_weight = user['weight'] + 2
-            target_message = f"A healthy goal for the next 20 days is to aim for **{target_weight:.1f} kg**."
-        else:
-            target_message = f"Your goal is to maintain your current weight of **{user['weight']:.1f} kg** and build strength."
-        
-        st.markdown(f'<div class="target-box"><h3>🎯 Your Achievable Goal</h3><p>{target_message}</p></div>', unsafe_allow_html=True)
+        st.subheader("My Message to You")
+        if metrics['bmi_category'] == "Healthy Weight": st.success(f"This is fantastic, {name}! You're in a great place. Let's help you feel strong and energized.")
+        else: st.warning(f"Thank you for sharing, {name}. This is just a starting point for an amazing journey of self-care. I'm here with you!")
+
+    # Display Advanced Metrics only if the required data was provided
+    if user['age'] > 0 or user['waist'] > 0:
+        st.subheader("Deeper Health Insights")
+        adv_cols = st.columns(3)
+        if metrics['bsa'] > 0: adv_cols[0].metric("Body Surface Area (BSA)", f"{metrics['bsa']} m²", help="An indicator of your metabolic mass.")
+        if metrics['bmr'] > 0: adv_cols[1].metric("Basal Metabolic Rate (BMR)", f"{metrics['bmr']} kcal/day", help="Calories your body burns at rest. Useful for diet planning.")
+        if metrics['ibw'] > 0: adv_cols[2].metric("Ideal Body Weight (IBW)", f"{metrics['ibw']} kg", help="An estimated healthy weight for your height.")
+        if metrics['whtr'] > 0:
+            adv_cols[0].metric("Waist-to-Height Ratio", metrics['whtr'], help="A ratio < 0.5 is ideal for heart health.")
+            if metrics['whtr'] >= 0.5: st.warning("Your WHtR is slightly high. Focusing on core exercises and a balanced diet can help improve this.")
+            else: st.success("Your WHtR is in a healthy range. Great job!")
+
+    st.info("When you're ready, unlock your full, personalized action plan below.")
+    if st.button("Unlock My Full Personalized Plan"):
+        st.session_state.step = 2
+        st.rerun()
+    if st.button("Start Over", key="so_preview"):
+        st.session_state.clear()
+        st.rerun()
+
+# --- Step 2: The Full Plan ---
+elif st.session_state.step == 2:
+    user = st.session_state.user_data
+    metrics = st.session_state.metrics
+    name = user['name'].split(" ")[0]
     
-    st.markdown("---")
     st.header(f"Your Action Plan for a Healthier, More Confident You!")
     
-    tab1, tab2, tab3 = st.tabs(["🥗 Diet Plan", "🏃‍♀️ Workout Plan", "💡 Habits & Confidence"])
+    tabs = st.tabs(["🎯 Your 20-Day Goal", "🥗 Diet Plan", "🏃‍♀️ Workout Plan", "💡 Habits & Confidence", "🇮🇳 India Health Snapshot", "🌟 Personalized Insights", "🧘‍♀️ Stress & Wellness"])
+    with tabs[0]: st.markdown(get_20_day_plan(name, metrics['bmi_category'], user['weight']), unsafe_allow_html=True)
+    with tabs[1]: st.markdown(get_diet_recommendations(metrics['bmi_category'], user['diet'], user['living_situation'], name), unsafe_allow_html=True)
+    with tabs[2]: st.markdown(get_workout_recommendations(metrics['bmi_category'], name), unsafe_allow_html=True)
+    with tabs[3]: st.markdown(get_habit_and_confidence_tips(name), unsafe_allow_html=True)
+    with tabs[4]: get_india_snapshot()
+    with tabs[5]: st.markdown(get_gender_specific_tips(user['gender'], name), unsafe_allow_html=True)
+    with tabs[6]: st.markdown(get_stress_management_tips(name), unsafe_allow_html=True)
 
-    with tab1: st.markdown(get_diet_recommendations(st.session_state.bmi_category, user['diet'], user['gender'], name), unsafe_allow_html=True)
-    with tab2: st.markdown(get_workout_recommendations(st.session_state.bmi_category, user['gender'], name), unsafe_allow_html=True)
-    with tab3: st.markdown(get_habit_and_confidence_tips(name), unsafe_allow_html=True)
-    
-    st.markdown("---")
+    st.divider()
+    st.subheader("🔔 Motivational Reminders")
+    if st.toggle("Enable motivational notifications"):
+        st.success("Awesome! I'll be your cheerleader. Imagine getting friendly nudges like these:")
+        st.info(f"Hey {name}, have you had a glass of water yet? Stay hydrated! 💧")
+        st.info(f"You're doing great, {name}! Just a quick reminder that you are strong and capable. Keep going! 💪")
+
     if st.button("Start Over"):
-        for key in list(st.session_state.keys()): del st.session_state[key]
+        st.session_state.clear()
         st.rerun()
