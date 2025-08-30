@@ -16,6 +16,7 @@ st.markdown("""
     .stApp {
         background-color: #FFF8E1; /* A warm, light cream background */
         font-family: 'Poppins', sans-serif;
+        color: #000000; /* Set default text to black */
     }
     
     /* Title style */
@@ -40,11 +41,11 @@ st.markdown("""
     }
     .custom-box p {
         font-size: 1.1rem; /* Slightly larger font size for readability */
-        color: #37474F;
+        color: #000000; /* Changed to black */
     }
     .custom-box ul {
         font-size: 1.1rem;
-        color: #37474F;
+        color: #000000; /* Changed to black */
     }
 
     /* Button style */
@@ -225,7 +226,7 @@ def get_stress_management_tips(name):
 st.title("✨ Welcome to Your Personal Wellness Coach!")
 st.markdown("<h3>I'm here to guide you on your journey to a healthier, more confident you. Let's do this together!</h3>", unsafe_allow_html=True)
 
-# --- Step 1: Collect User Info ---
+# --- Step 0: Collect User Info ---
 if st.session_state.step == 0:
     with st.form("user_info_form"):
         st.header("First, Tell Me a Bit About Yourself")
@@ -248,7 +249,7 @@ if st.session_state.step == 0:
              "I cook for myself / control my meals", 
              "I live in a PG/Hostel and eat from a mess"))
         
-        submitted = st.form_submit_button("Create My Plan!")
+        submitted = st.form_submit_button("Preview My Plan!")
         
         if submitted:
             if not name:
@@ -262,16 +263,15 @@ if st.session_state.step == 0:
                 st.session_state.step = 1
                 st.rerun()
 
-
-# --- Step 2: Analyze and Show Plan ---
+# --- Step 1: Preview and Confirmation ---
 elif st.session_state.step == 1:
     user = st.session_state.user_data
     st.session_state.bmi = calculate_bmi(user['weight'], user['height'])
     st.session_state.bmi_category = classify_bmi(st.session_state.bmi)
     name = user['name'].split(" ")[0]
     
-    with st.spinner(f'Crafting a personalized plan just for you, {name}...'):
-        time.sleep(2)
+    with st.spinner(f'Analyzing your details, {name}...'):
+        time.sleep(1)
 
     st.header(f"Alright {name}, Here's Your Personalized Health Snapshot!")
     
@@ -288,7 +288,21 @@ elif st.session_state.step == 1:
         else:
             st.warning(f"**Thank you for sharing, {name}.** Remember, this number is just a data point, not a definition of you. It gives us a starting line for an amazing journey of self-care we're about to begin together. I'm here with you!")
 
-    st.divider()
+    st.info("This is a preview of your analysis. When you're ready, unlock your full plan below.")
+
+    if st.button("Unlock My Full Personalized Plan"):
+        st.session_state.step = 2
+        st.rerun()
+
+    if st.button("Start Over", key="start_over_preview"):
+        for key in list(st.session_state.keys()): del st.session_state[key]
+        st.rerun()
+
+# --- Step 2: The Full Plan ---
+elif st.session_state.step == 2:
+    user = st.session_state.user_data
+    name = user['name'].split(" ")[0]
+    
     st.header(f"Your Action Plan for a Healthier, More Confident You!")
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["🥗 Diet Plan", "🏃‍♀️ Workout Plan", "💡 Habits & Confidence", "🌟 Personalized Insights", "🧘‍♀️ Stress & Wellness"])
