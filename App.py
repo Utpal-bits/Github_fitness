@@ -104,7 +104,7 @@ def calculate_whtr(waist, h): return round(waist / h, 2) if waist > 0 and h > 0 
 # --- Content Generation Functions ---
 def get_diet_recommendations(category, diet_type, living_situation, name):
     title = f"<h3>🥗 Hey {name}, I hope you're having a great day! Let's talk food.</h3>"
-    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Healthy+Indian+Thali"
+    image_url = "https://placehold.co/800x300/272727/FFFFFF?text=Healthy+Indian+Food"
     content = f"<img src='{image_url}' style='border-radius: 10px; margin-bottom: 20px; width: 100%;'>"
     
     base_info = f"""
@@ -289,7 +289,7 @@ def get_india_snapshot():
 
 # --- The App UI ---
 st.title("✨ Welcome to Your Personal Wellness Coach!")
-st.image("https://placehold.co/1200x300/000000/FF6F00?text=Your+Health+Journey+Starts+Now", use_column_width=True)
+st.image("https://placehold.co/1200x300/000000/FF6F00?text=Your+Health+Journey+Starts+Now", use_container_width=True)
 st.markdown("<h3>I'm here to guide you on your journey to a healthier, more confident you. Let's do this together!</h3>", unsafe_allow_html=True)
 
 # --- Step 0: Collect User Info ---
