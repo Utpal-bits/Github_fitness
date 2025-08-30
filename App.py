@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from datetime import date, timedelta
 
 # --- App Configuration ---
 st.set_page_config(
@@ -9,7 +10,6 @@ st.set_page_config(
 )
 
 # --- Custom Styling (CSS) ---
-# This injects custom CSS to make the app more colorful and lively.
 st.markdown("""
 <style>
     /* Main background and font */
@@ -71,28 +71,40 @@ if 'step' not in st.session_state:
 if 'user_data' not in st.session_state:
     st.session_state.user_data = {
         "name": "", "weight": 0.0, "height": 0.0, "diet": "Vegetarian",
-        "living_situation": "With Family", "feeling": "Not Sure", "gender": "Female"
+        "living_situation": "With Family", "gender": "Female",
+        "age": 0, "waist": 0
     }
-if 'bmi' not in st.session_state: st.session_state.bmi = 0
-if 'bmi_category' not in st.session_state: st.session_state.bmi_category = ""
+if 'metrics' not in st.session_state:
+    st.session_state.metrics = {}
 
 
-# --- Helper Functions ---
-def calculate_bmi(weight_kg, height_cm):
-    if height_cm > 0:
-        return round(weight_kg / ((height_cm / 100) ** 2), 1)
-    return 0
-
+# --- Helper Functions for Health Calculations ---
+def calculate_bmi(w, h): return round(w / ((h / 100) ** 2), 1) if h > 0 else 0
 def classify_bmi(bmi):
     if bmi < 18.5: return "Underweight"
     if 18.5 <= bmi <= 24.9: return "Healthy Weight"
     if 25.0 <= bmi <= 29.9: return "Overweight"
     return "Obese"
 
-# --- Content Generation Functions (Expanded & Styled) ---
-# NOTE: Titles changed from Markdown '###' to HTML '<h3>' to fix rendering bug.
+# --- Advanced Metric Functions ---
+def calculate_bsa(w, h): return round(0.007184 * (w ** 0.425) * (h ** 0.725), 2) if w > 0 and h > 0 else 0
+def calculate_pi(w, h): return round(w / ((h/100) ** 3), 1) if h > 0 else 0
+def calculate_bmr(w, h, age, gender):
+    if w <= 0 or h <= 0 or age <= 0: return 0
+    if gender == "Male": return round(10 * w + 6.25 * h - 5 * age + 5)
+    return round(10 * w + 6.25 * h - 5 * age - 161)
+def calculate_ibw(h, gender):
+    h_inches = h * 0.393701
+    if h_inches <= 60: return 0
+    if gender == "Male": return round(52 + 1.9 * (h_inches - 60))
+    return round(49 + 1.7 * (h_inches - 60))
+def calculate_whtr(waist, h): return round(waist / h, 2) if waist > 0 and h > 0 else 0
+
+
+# --- Content Generation Functions ---
 def get_diet_recommendations(category, diet_type, living_situation, name):
-    title = f"<h3>🥗 Namaste {name}, Let's Nourish Your Body!</h3>"
+    title = f"<h3>🥗 Hey {name}, I hope you're having a great day! Let's talk food.</h3>"
+    # ... (rest of the function remains the same, no need to repeat)
     base_info = f"""
     <div class="custom-box">
     <p>Based on your <b>{category}</b> status, here are some simple, balanced meal ideas that fit your <b>{diet_type}</b> preference. Think of this as a friendly guide, not a strict rulebook. The goal is to build a healthy relationship with food!</p>
@@ -149,7 +161,6 @@ def get_workout_recommendations(category, name):
             <li><b>Beyond:</b> We'll slowly increase the duration and add more fun exercises. The goal is to find movement you love!</li>
         </ul>
         """
-    # ... (similar expansions for other categories) ...
     else:
         content = """
         <h4>Your Goal: Maintain Fitness & Build Strength</h4>
@@ -161,7 +172,7 @@ def get_workout_recommendations(category, name):
     return f"{title}<div class='custom-box'>{content}</div>"
 
 def get_habit_and_confidence_tips(name):
-    title = f"<h3>💡 {name}, Let's Build Habits for a Confident You!</h3>"
+    title = f"<h3>💡 Hey {name}, Let's Build Habits for a Confident You!</h3>"
     content = f"""
     <h4>Small Steps, Giant Leaps</h4>
     <ul>
@@ -178,54 +189,46 @@ def get_habit_and_confidence_tips(name):
     """
     return f"{title}<div class='custom-box'>{content}</div>"
     
-def get_gender_specific_tips(gender, category, name):
+def get_gender_specific_tips(gender, name):
     title = f"<h3>🌟 Personalized Insights Just for You, {name}</h3>"
     content = ""
     if gender == "Female":
-        content = """
-        <h4>Health Focus for Women:</h4>
-        <ul>
-            <li><b>Iron & Calcium are Key:</b> Ensure your diet is rich in iron (spinach, lentils, beans) and calcium (dairy, ragi, sesame seeds) for bone health and energy levels.</li>
-            <li><b>Hormonal Harmony:</b> Regular exercise and a balanced diet can significantly help with managing PMS and maintaining hormonal balance.</li>
-            <li><b>Stress & Weight:</b> For many women, stress can lead to weight gain, especially around the midsection. Our stress management tips are extra important for you!</li>
-        </ul>
-        """
+        content = """<h4>Health Focus for Women:</h4><ul><li><b>Iron & Calcium are Key:</b> Ensure your diet is rich in iron (spinach, lentils, beans) and calcium (dairy, ragi, sesame seeds) for bone health and energy levels.</li><li><b>Hormonal Harmony:</b> Regular exercise and a balanced diet can significantly help with managing PMS and maintaining hormonal balance.</li><li><b>Stress & Weight:</b> For many women, stress can lead to weight gain, especially around the midsection. Our stress management tips are extra important for you!</li></ul>"""
     elif gender == "Male":
-        content = """
-        <h4>Health Focus for Men:</h4>
-        <ul>
-            <li><b>Protein for Muscle:</b> To build and maintain muscle mass, ensure adequate protein intake from sources like dal, paneer, eggs, or lean meats with every meal.</li>
-            <li><b>Heart Health:</b> Focus on a diet low in unhealthy fats and high in fiber (vegetables, whole grains) to keep your heart strong.</li>
-            <li><b>Mind the Belly:</b> For many men, excess weight tends to accumulate around the abdomen. Consistent cardio and a clean diet are the best tools to manage this.</li>
-        </ul>
-        """
-    else: # Prefer not to say / Other
-        content = """
-        <h4>A Holistic Approach to Your Health:</h4>
-        <ul>
-            <li><b>Listen to Your Body:</b> Your body gives you unique signals. Pay attention to your energy levels, sleep quality, and mood. These are your best indicators of health.</li>
-            <li><b>Balanced Nutrition is Universal:</b> A diet rich in a variety of whole foods—vegetables, proteins, healthy fats, and complex carbs—is the foundation of good health for everyone.</li>
-            <li><b>Consistency is Your Power:</b> Building a routine that you can stick with is more important than any single diet or workout.</li>
-        </ul>
-        """
+        content = """<h4>Health Focus for Men:</h4><ul><li><b>Protein for Muscle:</b> To build and maintain muscle mass, ensure adequate protein intake from sources like dal, paneer, eggs, or lean meats with every meal.</li><li><b>Heart Health:</b> Focus on a diet low in unhealthy fats and high in fiber (vegetables, whole grains) to keep your heart strong.</li><li><b>Mind the Belly:</b> For many men, excess weight tends to accumulate around the abdomen. Consistent cardio and a clean diet are the best tools to manage this.</li></ul>"""
+    else:
+        content = """<h4>A Holistic Approach to Your Health:</h4><ul><li><b>Listen to Your Body:</b> Your body gives you unique signals. Pay attention to your energy levels, sleep quality, and mood. These are your best indicators of health.</li><li><b>Balanced Nutrition is Universal:</b> A diet rich in a variety of whole foods—vegetables, proteins, healthy fats, and complex carbs—is the foundation of good health for everyone.</li><li><b>Consistency is Your Power:</b> Building a routine that you can stick with is more important than any single diet or workout.</li></ul>"""
     return f"{title}<div class='custom-box'>{content}</div>"
 
 def get_stress_management_tips(name):
     title = f"<h3>🧘‍♀️ {name}, Let's Talk About Stress & Wellness</h3>"
-    content = """
-    <p>Stress is a normal part of life, but managing it is crucial for your health and weight management goals. High stress can lead to poor food choices and weight gain.</p>
-    <h4>Simple Techniques to Find Your Calm:</h4>
+    content = """<p>Stress is a normal part of life, but managing it is crucial for your health and weight management goals. High stress can lead to poor food choices and weight gain.</p><h4>Simple Techniques to Find Your Calm:</h4><ul><li><b>5-Minute Breathing:</b> When feeling overwhelmed, sit quietly and focus on your breath. Inhale for 4 seconds, hold for 4, and exhale for 6. Repeat for 5 minutes.</li><li><b>Digital Detox:</b> Try to set aside 30 minutes every day where you put your phone away. Go for a walk, listen to music, or just sit with your thoughts.</li><li><b>Schedule 'Me-Time':</b> Just like a meeting, block out time in your calendar for a hobby or activity you love. It's non-negotiable!</li><li><b>Get Quality Sleep:</b> Aim for 7-8 hours of sleep. A well-rested mind is a less-stressed mind. Poor sleep can seriously impact your health goals.</li></ul>"""
+    return f"{title}<div class='custom-box'>{content}</div>"
+    
+def get_20_day_plan(name, category, weight):
+    today = date.today()
+    end_date = today + timedelta(days=20)
+    target_weight = weight
+    if category == "Overweight": target_weight -= 1.5
+    elif category == "Obese": target_weight -= 2.0
+    elif category == "Underweight": target_weight += 1.0
+        
+    title = f"<h3>🎯 Your 20-Day Kickstart Plan, {name}!</h3>"
+    content = f"""
+    <p>Today is <b>{today.strftime('%B %d, %Y')}</b>. Let's start a 20-day challenge to build momentum! Consistency is more powerful than intensity. Your projected target is to reach <b>{target_weight:.1f} kg</b> by <b>{end_date.strftime('%B %d, %Y')}</b>.</p>
+    <h4>Your Daily Mini-Goals:</h4>
     <ul>
-        <li><b>5-Minute Breathing:</b> When feeling overwhelmed, sit quietly and focus on your breath. Inhale for 4 seconds, hold for 4, and exhale for 6. Repeat for 5 minutes.</li>
-        <li><b>Digital Detox:</b> Try to set aside 30 minutes every day where you put your phone away. Go for a walk, listen to music, or just sit with your thoughts.</li>
-        <li><b>Schedule 'Me-Time':</b> Just like a meeting, block out time in your calendar for a hobby or activity you love. It's non-negotiable!</li>
-        <li><b>Get Quality Sleep:</b> Aim for 7-8 hours of sleep. A well-rested mind is a less-stressed mind. Poor sleep can seriously impact your health goals.</li>
+        <li><b>Movement:</b> Complete your recommended walk or activity.</li>
+        <li><b>Hydration:</b> Drink at least 8 glasses of water.</li>
+        <li><b>Mindful Meal:</b> For at least one meal, eat slowly without distractions.</li>
+        <li><b>Reflection:</b> Before bed, think of one healthy choice you made today that made you feel good.</li>
     </ul>
+    <p>That's it! Small, achievable steps. You can absolutely do this. Let's check in after 20 days and see the amazing progress you've made!</p>
     """
     return f"{title}<div class='custom-box'>{content}</div>"
 
-# --- The App UI ---
 
+# --- The App UI ---
 st.title("✨ Welcome to Your Personal Wellness Coach!")
 st.markdown("<h3>I'm here to guide you on your journey to a healthier, more confident you. Let's do this together!</h3>", unsafe_allow_html=True)
 
@@ -233,35 +236,28 @@ st.markdown("<h3>I'm here to guide you on your journey to a healthier, more conf
 if st.session_state.step == 0:
     with st.form("user_info_form"):
         st.header("First, Tell Me a Bit About Yourself")
-        
         name = st.text_input("What is your name?", placeholder="e.g., Priya Sharma")
         gender = st.selectbox("What is your gender?", ("Female", "Male", "Prefer not to say / Other"))
         
-        weight_option = st.radio("What's your current weight (in kg)?", ('Enter exact weight', 'Not sure, pick a range'), horizontal=True)
-        weight = 0.0
-        if weight_option == 'Enter exact weight':
-            weight = st.number_input("Weight (kg)", 30.0, 200.0, 65.0, 0.5)
-        else:
-            weight_range = st.select_slider("Select your approximate weight range (kg)", ['30-40', '40-50', '50-60', '60-70', '70-80', '80-90', '90-100', '100+'], '60-70')
-            weight = 105.0 if weight_range == '100+' else (int(weight_range.split('-')[0]) + int(weight_range.split('-')[1])) / 2.0
+        # Basic Info
+        weight = st.number_input("Weight (kg)", 30.0, 200.0, 65.0, 0.5)
+        height = st.number_input("Height (in cm)", 100.0, 250.0, 165.0, 1.0)
+        diet = st.selectbox("Dietary preference?", ("Vegetarian", "Eggetarian", "Non-Vegetarian"))
+        living_situation = st.selectbox("How do you manage meals?", ("I live with family", "I cook for myself", "I live in a PG/Hostel"))
         
-        height = st.number_input("What is your height (in cm)?", 100.0, 250.0, 165.0, 1.0)
-        diet = st.selectbox("What is your dietary preference?", ("Vegetarian", "Eggetarian", "Non-Vegetarian"))
-        living_situation = st.selectbox("How do you manage your meals?", 
-            ("I live with family and eat what's cooked", 
-             "I cook for myself / control my meals", 
-             "I live in a PG/Hostel and eat from a mess"))
-        
+        # Optional Advanced Info
+        with st.expander("Optional: Add more details for a deeper analysis"):
+            age = st.number_input("Your Age", 0, 100, 25)
+            waist = st.number_input("Waist Circumference (in cm)", 0, 200, 80)
+
         submitted = st.form_submit_button("Preview My Plan!")
-        
         if submitted:
-            if not name:
-                st.error("Please enter your name to continue.")
+            if not name: st.error("Please enter your name.")
             else:
                 st.session_state.user_data = {
                     "name": name, "weight": weight, "height": height, "diet": diet,
-                    "living_situation": "With Family" if "family" in living_situation else ("PG/Hostel" if "PG/Hostel" in living_situation else "Cook Alone"),
-                    "gender": gender
+                    "living_situation": living_situation, "gender": gender,
+                    "age": age, "waist": waist
                 }
                 st.session_state.step = 1
                 st.rerun()
@@ -269,55 +265,72 @@ if st.session_state.step == 0:
 # --- Step 1: Preview and Confirmation ---
 elif st.session_state.step == 1:
     user = st.session_state.user_data
-    st.session_state.bmi = calculate_bmi(user['weight'], user['height'])
-    st.session_state.bmi_category = classify_bmi(st.session_state.bmi)
-    name = user['name'].split(" ")[0]
+    w, h, age, gender, waist = user['weight'], user['height'], user['age'], user['gender'], user['waist']
     
-    with st.spinner(f'Analyzing your details, {name}...'):
-        time.sleep(1)
+    # Calculate all metrics
+    bmi = calculate_bmi(w, h)
+    bmi_category = classify_bmi(bmi)
+    st.session_state.metrics = {
+        'bmi': bmi, 'bmi_category': bmi_category,
+        'bsa': calculate_bsa(w, h),
+        'pi': calculate_pi(w, h),
+        'bmr': calculate_bmr(w, h, age, gender),
+        'ibw': calculate_ibw(h, gender),
+        'whtr': calculate_whtr(waist, h)
+    }
+    metrics = st.session_state.metrics
+    name = user['name'].split(" ")[0]
 
+    with st.spinner(f'Analyzing your details, {name}...'): time.sleep(1)
     st.header(f"Alright {name}, Here's Your Personalized Health Snapshot!")
     
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Your BMI Analysis")
-        st.metric(label="Your Body Mass Index (BMI) is", value=st.session_state.bmi)
-        st.write(f"This places you in the **'{st.session_state.bmi_category}'** category.")
-    
+        st.metric("Body Mass Index (BMI)", metrics['bmi'])
+        st.write(f"This places you in the **'{metrics['bmi_category']}'** category.")
     with col2:
         st.subheader("My Message to You")
-        if st.session_state.bmi_category == "Healthy Weight":
-            st.success(f"**This is fantastic, {name}!** You're in a great place. Our goal is to help you feel strong, energized, and maintain this healthy balance.")
-        else:
-            st.warning(f"**Thank you for sharing, {name}.** Remember, this number is just a data point, not a definition of you. It gives us a starting line for an amazing journey of self-care we're about to begin together. I'm here with you!")
+        if metrics['bmi_category'] == "Healthy Weight": st.success(f"This is fantastic, {name}! You're in a great place. Let's help you feel strong and energized.")
+        else: st.warning(f"Thank you for sharing, {name}. This is just a starting point for an amazing journey of self-care. I'm here with you!")
 
-    st.info("This is a preview of your analysis. When you're ready, unlock your full plan below.")
+    # Display Advanced Metrics if available
+    if user['age'] > 0 or user['waist'] > 0:
+        st.subheader("Deeper Health Insights")
+        adv_cols = st.columns(3)
+        if metrics['bsa'] > 0: adv_cols[0].metric("Body Surface Area (BSA)", f"{metrics['bsa']} m²", help="An indicator of your metabolic mass.")
+        if metrics['bmr'] > 0: adv_cols[1].metric("Basal Metabolic Rate (BMR)", f"{metrics['bmr']} kcal/day", help="Calories your body burns at rest. Useful for diet planning.")
+        if metrics['ibw'] > 0: adv_cols[2].metric("Ideal Body Weight (IBW)", f"{metrics['ibw']} kg", help="An estimated healthy weight for your height.")
+        if metrics['whtr'] > 0:
+            adv_cols[0].metric("Waist-to-Height Ratio", metrics['whtr'], help="A ratio < 0.5 is ideal for heart health.")
+            if metrics['whtr'] >= 0.5: st.warning("Your WHtR is slightly high. Focusing on core exercises and a balanced diet can help improve this.")
+            else: st.success("Your WHtR is in a healthy range. Great job!")
 
+    st.info("When you're ready, unlock your full, personalized action plan below.")
     if st.button("Unlock My Full Personalized Plan"):
         st.session_state.step = 2
         st.rerun()
-
-    if st.button("Start Over", key="start_over_preview"):
+    if st.button("Start Over", key="so_preview"):
         for key in list(st.session_state.keys()): del st.session_state[key]
         st.rerun()
 
 # --- Step 2: The Full Plan ---
 elif st.session_state.step == 2:
     user = st.session_state.user_data
+    metrics = st.session_state.metrics
     name = user['name'].split(" ")[0]
     
     st.header(f"Your Action Plan for a Healthier, More Confident You!")
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🥗 Diet Plan", "🏃‍♀️ Workout Plan", "💡 Habits & Confidence", "🌟 Personalized Insights", "🧘‍♀️ Stress & Wellness"])
-
-    with tab1: st.markdown(get_diet_recommendations(st.session_state.bmi_category, user['diet'], user['living_situation'], name), unsafe_allow_html=True)
-    with tab2: st.markdown(get_workout_recommendations(st.session_state.bmi_category, name), unsafe_allow_html=True)
-    with tab3: st.markdown(get_habit_and_confidence_tips(name), unsafe_allow_html=True)
-    with tab4: st.markdown(get_gender_specific_tips(user['gender'], st.session_state.bmi_category, name), unsafe_allow_html=True)
-    with tab5: st.markdown(get_stress_management_tips(name), unsafe_allow_html=True)
+    tabs = st.tabs(["🎯 Your 20-Day Goal", "🥗 Diet Plan", "🏃‍♀️ Workout Plan", "💡 Habits & Confidence", "🌟 Personalized Insights", "🧘‍♀️ Stress & Wellness"])
+    with tabs[0]: st.markdown(get_20_day_plan(name, metrics['bmi_category'], user['weight']), unsafe_allow_html=True)
+    with tabs[1]: st.markdown(get_diet_recommendations(metrics['bmi_category'], user['diet'], user['living_situation'], name), unsafe_allow_html=True)
+    with tabs[2]: st.markdown(get_workout_recommendations(metrics['bmi_category'], name), unsafe_allow_html=True)
+    with tabs[3]: st.markdown(get_habit_and_confidence_tips(name), unsafe_allow_html=True)
+    with tabs[4]: st.markdown(get_gender_specific_tips(user['gender'], name), unsafe_allow_html=True)
+    with tabs[5]: st.markdown(get_stress_management_tips(name), unsafe_allow_html=True)
 
     st.divider()
-
     st.subheader("🔔 Motivational Reminders")
     if st.toggle("Enable motivational notifications"):
         st.success("Awesome! I'll be your cheerleader. Imagine getting friendly nudges like these:")
