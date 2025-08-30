@@ -104,7 +104,6 @@ def calculate_whtr(waist, h): return round(waist / h, 2) if waist > 0 and h > 0 
 # --- Content Generation Functions ---
 def get_diet_recommendations(category, diet_type, living_situation, name):
     title = f"<h3>🥗 Hey {name}, I hope you're having a great day! Let's talk food.</h3>"
-    # ... (rest of the function remains the same, no need to repeat)
     base_info = f"""
     <div class="custom-box">
     <p>Based on your <b>{category}</b> status, here are some simple, balanced meal ideas that fit your <b>{diet_type}</b> preference. Think of this as a friendly guide, not a strict rulebook. The goal is to build a healthy relationship with food!</p>
@@ -132,17 +131,45 @@ def get_diet_recommendations(category, diet_type, living_situation, name):
             specific_advice += "<ul><li><b>Breakfast:</b> Egg bhurji or 2 boiled eggs.</li><li><b>Lunch:</b> 100g grilled chicken/fish with a large salad and a small portion of brown rice or one roti.</li><li><b>Dinner:</b> Homestyle chicken/fish curry (thin gravy) with lots of veggies.</li></ul>"
 
     elif category == "Underweight":
-        specific_advice = "<h4>🎯 Your Focus: Healthy Weight Gain</h4><p>We need nutrient-dense and calorie-rich foods to build strength.</p><ul><li>Add healthy fats like ghee to your rotis and dal.</li><li>Include paneer, potatoes, sweet potatoes, and nuts.</li><li>For non-vegetarians and eggetarians, eggs and chicken are excellent for muscle building.</li></ul>"
+        specific_advice = """
+        <h4>🎯 Your Focus: Healthy & Sustainable Weight Gain</h4>
+        <p>Our goal is to nourish your body with calorie-dense and nutrient-rich foods to build strength and stamina in a healthy way.</p>
+        """
+        if diet_type == "Vegetarian":
+            specific_advice += """
+            <ul>
+                <li><b>Breakfast:</b> A bowl of dalia or oats cooked in milk with nuts and seeds. Or, 2 paneer-stuffed parathas with dahi.</li>
+                <li><b>Lunch:</b> A full thali with 2 rotis (with ghee), a generous serving of rice, dal, sabzi, and a side of paneer or tofu curry.</li>
+                <li><b>Dinner:</b> Khichdi made with extra ghee, or rajma/chana masala with rice. A glass of warm milk before bed is a great addition.</li>
+                <li><b>Snacks:</b> Peanut butter with apple slices, a handful of almonds/walnuts, or a banana shake.</li>
+            </ul>
+            """
+        elif diet_type == "Eggetarian":
+            specific_advice += """
+            <ul>
+                <li><b>Breakfast:</b> A 3-egg omelette with cheese and vegetables, served with 2 slices of whole wheat toast.</li>
+                <li><b>Lunch:</b> Add 2-3 boiled eggs to your standard vegetarian thali for an easy protein and calorie boost.</li>
+                <li><b>Dinner:</b> Egg curry with rice or roti, along with a hearty sabzi.</li>
+            </ul>
+            """
+        else:  # Non-Vegetarian
+            specific_advice += """
+            <ul>
+                <li><b>Breakfast:</b> 3-egg omelette or scrambled eggs with chicken sausages.</li>
+                <li><b>Lunch:</b> A generous portion of chicken or fish curry with rice, dal, and sabzi. Don't skip the carbs!</li>
+                <li><b>Dinner:</b> Grilled chicken/fish (150g) with roasted sweet potatoes and vegetables.</li>
+            </ul>
+            """
     
     else: # Healthy Weight
         specific_advice = "<h4>🎯 Your Focus: Maintenance & Vitality</h4><p>You're doing great! Let's focus on maintaining this balance with variety and whole foods.</p><ul><li>Ensure a good mix of protein (dal, paneer, eggs, chicken), complex carbs (roti, brown rice), and colorful vegetables.</li></ul>"
 
     living_advice = ""
-    if living_situation == "Cook Alone":
+    if living_situation == "I cook for myself":
         living_advice = "<h4>💡 Tip for You:</h4><p>One-pot meals are your best friend! Think vegetable pulao, dal khichdi, or a quick paneer/chicken stir-fry. Easy, quick, and nutritious.</p>"
-    elif living_situation == "PG/Hostel":
+    elif living_situation == "I live in a PG/Hostel":
         living_advice = "<h4>💡 Making Smart Choices in the Mess:</h4><p>You can still eat healthy!<ul><li>Always take the salad if it's available.</li><li>Ask for an extra serving of dal and sabzi instead of a second helping of rice or puri.</li><li>Avoid fried items like pakoras or papad when you can.</li><li>Drink a glass of water before your meal to control your appetite.</li></ul></p>"
-    else: # With Family
+    else: # I live with family
         living_advice = "<h4>💡 Eating with Family:</h4><p>No need for a separate meal! Just adjust your portions. Take a larger serving of sabzi and dal, and a smaller one of rice or roti. You're still sharing the meal and love, just in a way that serves your goals.</p>"
 
     return f"{title}{base_info}<div class='custom-box'>{specific_advice}{living_advice}</div>"
@@ -294,7 +321,7 @@ elif st.session_state.step == 1:
         if metrics['bmi_category'] == "Healthy Weight": st.success(f"This is fantastic, {name}! You're in a great place. Let's help you feel strong and energized.")
         else: st.warning(f"Thank you for sharing, {name}. This is just a starting point for an amazing journey of self-care. I'm here with you!")
 
-    # Display Advanced Metrics if available
+    # Display Advanced Metrics only if the required data was provided
     if user['age'] > 0 or user['waist'] > 0:
         st.subheader("Deeper Health Insights")
         adv_cols = st.columns(3)
@@ -311,7 +338,7 @@ elif st.session_state.step == 1:
         st.session_state.step = 2
         st.rerun()
     if st.button("Start Over", key="so_preview"):
-        for key in list(st.session_state.keys()): del st.session_state[key]
+        for key in list(st.session_state.keys()): del st.session_state.key
         st.rerun()
 
 # --- Step 2: The Full Plan ---
